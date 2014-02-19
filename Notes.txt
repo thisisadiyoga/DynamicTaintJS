@@ -1,0 +1,10 @@
+/***************************************************
+String Library Handler
+***************************************************/
+- String.prototype.charAt
+- String.prototype.charCodeAt
+- String.prototype.concat
+- String.fromCharCode
+- String.prototype.indexOf
+- String.prototype.lastIndexOf
+- String.prototype.localeCompare
