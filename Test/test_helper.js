@@ -3,17 +3,18 @@ Test Helper Function
 - to be used only by translated code during test
 ***************************************************/
 /// Comparison
+function __equal(a, b) {
+	return (a === b) || (typeof a === 'number' && typeof b === 'number' && isNaN(a) && isNaN(b));
+}
+
 function __compare(a, b) {
-	return ((IsTaintObj(a) && IsTaintObj(b)	&&					// Taint Object
-				((a.val === b.val && a.tag === b.tag) ||		// -  Compare Value and Tag
-				 (isNaN(a) && isNaN(b) && a.tag == b.tag))) ||	// OR Both are NaN
-			(!IsTaintObj(a) && !IsTaintObj(b) &&				// Not Taint Object
-				((a === b) ||									// -  Compare Directly
-				 (isNaN(a) && isNaN(b)))));						// OR Both are NaN
+	return (IsTaintObj(a)  && IsTaintObj(b)  &&
+				__compare(a.val, b.val) && __equal(a.tag, b.tag)) ||
+		   (!IsTaintObj(a) && !IsTaintObj(b) && __equal(a, b));
 }
 
 function __test(num, actual, expect, pass, fail) {
-	var result = false;
-	console.log(num + '. ' + ((result = __compare(actual, expect)) ? pass : (fail + ' with: ' + (IsTaintObj(actual)?(actual.val + ', ' + actual.tag):actual.val))));
+	var result = __compare(actual, expect);
+	console.log(num + '. ' + (result === true ? pass : (fail + ' with: ' + (IsTaintObj(actual)?(actual.val + ', ' + actual.tag):actual.val))));
 	return result;
 }

@@ -237,13 +237,233 @@ var _StringLibraryTester = (function() {
 	
 	/// match
 	function testMatch() {
-	
+		var txt, reg, res, act;
+		var testNum = 0;
+		
+		// Test Regex:
+		console.log('- Test match (RegEx):');
+		txt = 'For more information, see Chapter 3.4.5.1 by Adi Yoga Sidi Prabawa';
+		reg = /(chapter \d+(\.\d)*)/i;
+		
+		// !Tag, !New, Local, !Tag1
+		res = MakeTaintObj([
+			MakeTaintObj('Chapter 3.4.5.1', false),
+			MakeTaintObj('Chapter 3.4.5.1', false),
+			MakeTaintObj('.1', false)], false
+		);
+		act = txt.match(false, false, reg, false);
+		
+		for(var i=0; i<act.val.length; i++) {
+			__test(++testNum, act.val[i], res.val[i], 'PASS', 'FAIL');
+		}
+		__test(++testNum, act.tag, res.tag, 'PASS: Array Tag', 'FAIL: Array Tag');
+		__test(++testNum, act.length, res.length, 'PASS: Array Length', 'FAIL: Array Length');
+		
+		
+		// Tag, !New, Local, !Tag1
+		res = MakeTaintObj([
+			MakeTaintObj('Chapter 3.4.5.1', true),
+			MakeTaintObj('Chapter 3.4.5.1', true),
+			MakeTaintObj('.1', true)], true
+		);
+		act = txt.match(true, false, reg, false);
+		
+		for(var i=0; i<act.val.length; i++) {
+			__test(++testNum, act.val[i], res.val[i], 'PASS', 'FAIL');
+		}
+		__test(++testNum, act.tag, res.tag, 'PASS: Array Tag', 'FAIL: Array Tag');
+		__test(++testNum, act.length, res.length, 'PASS: Array Length', 'FAIL: Array Length');
+		
+		
+		// !Tag, !New, Local, Tag1
+		act = txt.match(false, false, reg, true);
+		
+		for(var i=0; i<act.val.length; i++) {
+			__test(++testNum, act.val[i], res.val[i], 'PASS', 'FAIL');
+		}
+		__test(++testNum, act.tag, res.tag, 'PASS: Array Tag', 'FAIL: Array Tag');
+		__test(++testNum, act.length, res.length, 'PASS: Array Length', 'FAIL: Array Length');
+		
+		
+		// Tag, !New, Local, Tag1
+		act = txt.match(true, false, reg, true);
+		
+		for(var i=0; i<act.val.length; i++) {
+			__test(++testNum, act.val[i], res.val[i], 'PASS', 'FAIL');
+		}
+		__test(++testNum, act.tag, res.tag, 'PASS: Array Tag', 'FAIL: Array Tag');
+		__test(++testNum, act.length, res.length, 'PASS: Array Length', 'FAIL: Array Length');
+		
+		
+		// Test String
+		console.log('- Test match(String):');
+		txt = 'The rain in SPAIN stays mainly in the plain';
+		reg = 'ain';
+		
+		// Tag, !New, Local, !Tag1
+		res = MakeTaintObj(
+			[MakeTaintObj('ain', false)], false
+		);
+		act = txt.match(false, false, reg, false);
+		
+		for(var i=0; i<act.val.length; i++) {
+			__test(++testNum, act.val[i], res.val[i], 'PASS', 'FAIL');
+		}
+		__test(++testNum, act.tag, res.tag, 'PASS: Array Tag', 'FAIL: Array Tag');
+		__test(++testNum, act.length, res.length, 'PASS: Array Length', 'FAIL: Array Length');
+		
+		
+		// Tag, !New, Local, !Tag1
+		res = MakeTaintObj(
+			[MakeTaintObj('ain', true)], true
+		);
+		act = txt.match(true, false, reg, false);
+		
+		for(var i=0; i<act.val.length; i++) {
+			__test(++testNum, act.val[i], res.val[i], 'PASS', 'FAIL');
+		}
+		__test(++testNum, act.tag, res.tag, 'PASS: Array Tag', 'FAIL: Array Tag');
+		__test(++testNum, act.length, res.length, 'PASS: Array Length', 'FAIL: Array Length');
+		
+		
+		// !Tag, !New, Local, Tag1
+		act = txt.match(false, false, reg, true);
+		
+		for(var i=0; i<act.val.length; i++) {
+			__test(++testNum, act.val[i], res.val[i], 'PASS', 'FAIL');
+		}
+		__test(++testNum, act.tag, res.tag, 'PASS: Array Tag', 'FAIL: Array Tag');
+		__test(++testNum, act.length, res.length, 'PASS: Array Length', 'FAIL: Array Length');
+		
+		
+		// Tag, !New, Local, Tag1
+		act = txt.match(true, false, reg, true);
+		
+		for(var i=0; i<act.val.length; i++) {
+			__test(++testNum, act.val[i], res.val[i], 'PASS', 'FAIL');
+		}
+		__test(++testNum, act.tag, res.tag, 'PASS: Array Tag', 'FAIL: Array Tag');
+		__test(++testNum, act.length, res.length, 'PASS: Array Length', 'FAIL: Array Length');
+		
+		console.log('');
 	}
 	
 	
 	
 	/// replace
-    
+    function testReplace() {
+		var txt, arg1a, arg1b, arg2a, arg2b, res;
+		var testNum = 0;
+		
+		// Test RegEx + Function
+		console.log('- Test replace(RegEx, Function):');
+		txt = 'abc12345#$*%';
+		arg1a = /([^\d]*)(\d*)([^\w]*)/;
+		arg2a = function ___a(_tag, _new, match, match_tag, p1, p1_tag, p2, p2_tag, p3, p3_tag, offset, offset_tag, string, string_tag) {
+			if(_new === true) {
+				if(IsGlobal(this)) {
+					return new ___a(_tag, false, match, match_tag, p1, p1_tag, p2, p2_tag, p3, p3_tag, offset, offset_tag, string, string_tag);
+				} else {
+					return new this.___a(_tag, false, match, match_tag, p1, p1_tag, p2, p2_tag, p3, p3_tag, offset, offset_tag, string, string_tag);
+				}
+			} else {
+				return MakeTaintObj(
+					// Remove dependencies with Array.prototype.join
+					// [p1, p2, p3].join(' - '),
+					p1 + ' - ' + p2 + ' - ' + p3,
+					LUB(_tag, p1_tag, p2_tag, p3_tag)
+				);
+			}
+		};
+		arg2b = function(match, p1, p2, p3, offset, string) {
+			// Remove dependencies with Array.prototype.join
+			// return [p1, p2, p3].join(' - ');
+			return p1 + ' - ' + p2 + ' - ' + p3;
+		};
+		res = MakeTaintObj('abc - 12345 - #$*%', false);
+		__test(++testNum, txt.replace(false, false, arg1a, false, arg2a, false), MakeTaintObj(txt._replace(arg1a, arg2b), false), 'PASS', 'FAIL');
+		__test(++testNum, txt.replace(false, false, arg1a, false, arg2a, false), res, 'PASS', 'FAIL');
+		
+		res = MakeTaintObj('abc - 12345 - #$*%', true);
+		__test(++testNum, txt.replace(true, false, arg1a, false, arg2a, false), MakeTaintObj(txt._replace(arg1a, arg2b), true), 'PASS', 'FAIL');
+		__test(++testNum, txt.replace(true, false, arg1a, false, arg2a, false), res, 'PASS', 'FAIL');
+		
+		__test(++testNum, txt.replace(false, false, arg1a, false, arg2a, true), MakeTaintObj(txt._replace(arg1a, arg2b), true), 'PASS', 'FAIL');
+		__test(++testNum, txt.replace(false, false, arg1a, false, arg2a, true), res, 'PASS', 'FAIL');
+		
+		__test(++testNum, txt.replace(false, false, arg1a, true, arg2a, false), MakeTaintObj(txt._replace(arg1a, arg2b), true), 'PASS', 'FAIL');
+		__test(++testNum, txt.replace(false, false, arg1a, true, arg2a, false), res, 'PASS', 'FAIL');
+		
+		__test(++testNum, txt.replace(false, false, arg1a, true, arg2a, true), MakeTaintObj(txt._replace(arg1a, arg2b), true), 'PASS', 'FAIL');
+		__test(++testNum, txt.replace(false, false, arg1a, true, arg2a, true), res, 'PASS', 'FAIL');
+		
+		__test(++testNum, txt.replace(true, false, arg1a, true, arg2a, false), MakeTaintObj(txt._replace(arg1a, arg2b), true), 'PASS', 'FAIL');
+		__test(++testNum, txt.replace(true, false, arg1a, true, arg2a, false), res, 'PASS', 'FAIL');
+		
+		__test(++testNum, txt.replace(true, false, arg1a, false, arg2a, true), MakeTaintObj(txt._replace(arg1a, arg2b), true), 'PASS', 'FAIL');
+		__test(++testNum, txt.replace(true, false, arg1a, false, arg2a, true), res, 'PASS', 'FAIL');
+		
+		__test(++testNum, txt.replace(true, false, arg1a, true, arg2a, true), MakeTaintObj(txt._replace(arg1a, arg2b), true), 'PASS', 'FAIL');
+		__test(++testNum, txt.replace(true, false, arg1a, true, arg2a, true), res, 'PASS', 'FAIL');
+		
+		
+		
+		txt = 'For more information, see Chapter 3.4.5.1';
+		arg1a = /(chapter \d+(\.\d)*)/i;
+		arg2a = function ___a(_tag, _new, _val1, _tag1, _val2, _tag2, _val3, _tag3, _val4, _tag4, _val5, _tag5) {
+			// Recombine Arguments:
+			var match = MakeTaintObj(_val1, _tag1);
+			var p1 = MakeTaintObj(_val2, _tag2);
+			var p2 = MakeTaintObj(_val3, _tag3);
+			var offset = MakeTaintObj(_val4, _tag4);
+			var string = MakeTaintObj(_val5, _tag5);
+			
+			if(_new === true) {
+				if(IsGlobal(this)) {
+					return new ___a(_tag, _new, _val1, _tag1, _val2, _tag2, _val3, _tag3, _val4, _tag4, _val5, _tag5);
+				} else {
+					function constructor(args) {
+						return ___a.apply(this, args);
+					}
+					constructor.prototype = ___a.prototype;
+					return new constructor([_tag, false, _val1, _tag1, _val2, _tag2, _val3, _tag3, _val4, _tag4, _val5, _tag5]);
+				}
+			} else {
+				return MakeTaintObj(
+					match.val + ' +++ ' + p1.val + ' --- ' + p2.val,
+					LUB(match.tag, p1.tag, p2.tag)
+				);
+			}
+		};
+		arg2b = function(match, p1, p2, offset, string) {
+			return match + ' +++ ' + p1 + ' --- ' + p2;
+		};
+		res = MakeTaintObj('For more information, see Chapter 3.4.5.1 +++ Chapter 3.4.5.1 --- .1', false);
+		__test(++testNum, txt.replace(false, false, arg1a, false, arg2a, false), MakeTaintObj(txt._replace(arg1a, arg2b), false), 'PASS', 'FAIL');
+		__test(++testNum, txt.replace(false, false, arg1a, false, arg2a, false), res, 'PASS', 'FAIL');
+		
+		res = MakeTaintObj('For more information, see Chapter 3.4.5.1 +++ Chapter 3.4.5.1 --- .1', true);
+		__test(++testNum, txt.replace(true, false, arg1a, false, arg2a, false), MakeTaintObj(txt._replace(arg1a, arg2b), true), 'PASS', 'FAIL');
+		__test(++testNum, txt.replace(true, false, arg1a, false, arg2a, false), res, 'PASS', 'FAIL');
+		
+		__test(++testNum, txt.replace(false, false, arg1a, false, arg2a, true), MakeTaintObj(txt._replace(arg1a, arg2b), true), 'PASS', 'FAIL');
+		__test(++testNum, txt.replace(false, false, arg1a, false, arg2a, true), res, 'PASS', 'FAIL');
+		
+		__test(++testNum, txt.replace(false, false, arg1a, true, arg2a, false), MakeTaintObj(txt._replace(arg1a, arg2b), true), 'PASS', 'FAIL');
+		__test(++testNum, txt.replace(false, false, arg1a, true, arg2a, false), res, 'PASS', 'FAIL');
+		
+		__test(++testNum, txt.replace(false, false, arg1a, true, arg2a, true), MakeTaintObj(txt._replace(arg1a, arg2b), true), 'PASS', 'FAIL');
+		__test(++testNum, txt.replace(false, false, arg1a, true, arg2a, true), res, 'PASS', 'FAIL');
+		
+		__test(++testNum, txt.replace(true, false, arg1a, true, arg2a, false), MakeTaintObj(txt._replace(arg1a, arg2b), true), 'PASS', 'FAIL');
+		__test(++testNum, txt.replace(true, false, arg1a, true, arg2a, false), res, 'PASS', 'FAIL');
+		
+		__test(++testNum, txt.replace(true, false, arg1a, false, arg2a, true), MakeTaintObj(txt._replace(arg1a, arg2b), true), 'PASS', 'FAIL');
+		__test(++testNum, txt.replace(true, false, arg1a, false, arg2a, true), res, 'PASS', 'FAIL');
+		
+		__test(++testNum, txt.replace(true, false, arg1a, true, arg2a, true), MakeTaintObj(txt._replace(arg1a, arg2b), true), 'PASS', 'FAIL');
+		__test(++testNum, txt.replace(true, false, arg1a, true, arg2a, true), res, 'PASS', 'FAIL');
+	}
     
     
     
@@ -255,7 +475,9 @@ var _StringLibraryTester = (function() {
 		concat: 		testConcat,
 		fromCharCode:	testFromCharCode,
 		indexOf:		testIndexOf,
-		lastIndexOf:	testLastIndexOf
+		lastIndexOf:	testLastIndexOf,
+		match:			testMatch,
+		replace:		testReplace
     };
     var tests_arr = [
         testCharAt,
@@ -263,7 +485,9 @@ var _StringLibraryTester = (function() {
 		testConcat,
 		testFromCharCode,
 		testIndexOf,
-		testLastIndexOf
+		testLastIndexOf,
+		testMatch,
+		testReplace
     ];
     return {
         runAll: function() {
@@ -273,10 +497,12 @@ var _StringLibraryTester = (function() {
         },
         run: function(i) {
 			if(typeof i === 'number') {
-				(test_arr[i])();
+				(tests_arr[i])();
 			} else {
-				(test_obj[i])();
+				(tests_obj[i])();
 			}
 		}
     }
 })();
+
+// _StringLibraryTester.runAll();

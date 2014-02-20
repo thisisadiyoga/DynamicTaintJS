@@ -13,6 +13,11 @@ function IsStrongDefined(obj) {
 	return !(typeof obj === 'undefined' || obj == null);
 }
 
+// Checking Function Object
+function IsFunction(obj) {
+	return typeof obj === 'function';
+}
+
 // Checking Object.Field (Object['Field']) Accessibility
 function IsAccessible(obj, fld) {
 	try {

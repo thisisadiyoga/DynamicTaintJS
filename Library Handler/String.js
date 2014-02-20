@@ -18,6 +18,7 @@ String Library Handler
 		  new f_name();)
 	
    Lastly, every parameter has to have the
+   Lastly, every parameter has to have the
    corresponding tag which corresponds to the tag
    attached to the original parameter in the
    transformation
@@ -75,6 +76,7 @@ String.prototype.charAt = function(_tag, _new, _val1, _tag1) {
 			}
 		} else {
 			if(IsDefined(_val1)) {
+				//! TODO: Check Correctness
 				return MakeTaintObj(
 					this._charAt(_val1),
 					_tag
@@ -467,7 +469,7 @@ Object.defineProperty(String.prototype, '_replace', {
 });
 String.prototype.replace = function(_tag, _new, _val1, _tag1, _val2, _tag2) {
 	var temp = String.prototype._replace;
-	if(_new == true) {
+	if(_new === true) {
 		if(IsGlobal(this)) {
 			if(IsDefined(_val2)) {
 				return new temp(_val1, _val2);
@@ -488,10 +490,81 @@ String.prototype.replace = function(_tag, _new, _val1, _tag1, _val2, _tag2) {
 	} else {
 		if(IsGlobal(this)) {
 			if(IsDefined(_val2)) {
-				return MakeTaintObj(
-					temp(_val1, _val2),
-					LUB(_tag, _tag2)
-				);
+				if(IsFunction(_val2)) {
+					//! TODO: Re-allign _match and indexOf
+					
+					//! NOTE: Function Conversion to Expected Format
+					/* - When the second argument is a function,
+					 *   it is called for every matched function
+					 *   (ref: ES5 sec 15.5.4.11)
+					 * - The format of the arguments of the function
+					 *   is as follows: there are m+3 arguments
+					 *   - substring that match the RegEx in arg1 (_val1)
+					 *   - m-arguments of the captured MatchResult (ref: ES5 sec 15.10.2.1)
+					 *   - offset of matched string (as argument m+2)
+					 *   - the original string (as argument m+3)
+					 *   *** The first argument would match
+					 *       the result[0] of String.prototype.match
+					 *   *** The rest of the argument would match
+					 *       the rest of result of String.prototype.match
+					 * - Expected format of arguments of function
+					 *   is as follows: there are 2m+8 arguments
+					 *   - tag of the caller (called in window, so always false)
+					 *   - flag indicating if the function is called as new (also false)
+					 *   - substring that match the RegEx in arg1 (_val1)
+					 *   - tag of the substring (computed as LUB(_tag, _tag1), where _tag1 is from RegEx)
+					 *   - m-arguments of the following format of a pair:
+					 *     <captured MatchResult (ref: ES5 sec 15.10.2.1), tag of MatchResult>
+					 *     but they are expanded into 2m-arguments explicitly
+					 *   - offset of matched string (as argument 2m+5)
+					 *   - tag of the offset of matched string (as argument 2m+6)
+					 *   - the original string (as argument 2m+7)
+					 *   - tag of the original string (i.e. _tag) (as argument 2m+8)
+					 */
+					// Get Matched Value:
+					var matched = this._match(_val1);
+					
+					// Prepare Arguments:
+					var args = [];
+					args.push(false);	// Tag of Caller
+					args.push(false);	// Not New Object Creation
+					
+					// - (2m+2)-arguments:
+					//    - from substring to the MatchResult
+					for(var i=0; i<matched.length; i++) {
+						args.push(matched[i]);		// val_i
+						args.push(LUB(_tag, _tag1));// tag_i
+					}
+					
+					// - 2m+5th to 2m+8th arguments
+					args.push(this._indexOf(matched[0]));	// Offset
+					args.push(false);
+					args.push(this);						// String
+					args.push(_tag);							
+					
+					// Apply Function: using the prepared arguments
+					// - Expected Return is of type: TaintObject
+					// - but handle the case if it is not nevertheless
+					var result = _val2.apply(window, args);
+					
+					// Create Result:
+					return IsTaintObj(result)
+						?	// - TaintObject Result from _val2
+						MakeTaintObj(
+							temp(_val1, result.val),
+							LUB(_tag, _tag2, result.tag)
+						)
+						:	// - NOT TaintObject
+						MakeTaintObj(
+							temp(_val1, result),
+							LUB(_tag, _tag2)
+						)
+				} else {
+					return MakeTaintObj(
+						temp(_val1, _val2),
+						LUB(_tag, _tag2)
+					);
+				}
 			} else if(IsDefined(_val1)) {
 				return MakeTaintObj(
 					temp(_val1),
@@ -505,10 +578,79 @@ String.prototype.replace = function(_tag, _new, _val1, _tag1, _val2, _tag2) {
 			}
 		} else {
 			if(IsDefined(_val2)) {
-				return MakeTaintObj(
-					this._replace(_val1, _val2),
-					LUB(_tag, _tag2)
-				);
+				if(IsFunction(_val2)) {
+					//! NOTE: Function Conversion to Expected Format
+					/* - When the second argument is a function,
+					 *   it is called for every matched function
+					 *   (ref: ES5 sec 15.5.4.11)
+					 * - The format of the arguments of the function
+					 *   is as follows: there are m+3 arguments
+					 *   - substring that match the RegEx in arg1 (_val1)
+					 *   - m-arguments of the captured MatchResult (ref: ES5 sec 15.10.2.1)
+					 *   - offset of matched string (as argument m+2)
+					 *   - the original string (as argument m+3)
+					 *   *** The first argument would match
+					 *       the result[0] of String.prototype.match
+					 *   *** The rest of the argument would match
+					 *       the rest of result of String.prototype.match
+					 * - Expected format of arguments of function
+					 *   is as follows: there are 2m+8 arguments
+					 *   - tag of the caller (called in window, so always false)
+					 *   - flag indicating if the function is called as new (also false)
+					 *   - substring that match the RegEx in arg1 (_val1)
+					 *   - tag of the substring (computed as LUB(_tag, _tag1), where _tag1 is from RegEx)
+					 *   - m-arguments of the following format of a pair:
+					 *     <captured MatchResult (ref: ES5 sec 15.10.2.1), tag of MatchResult>
+					 *     but they are expanded into 2m-arguments explicitly
+					 *   - offset of matched string (as argument 2m+5)
+					 *   - tag of the offset of matched string (as argument 2m+6)
+					 *   - the original string (as argument 2m+7)
+					 *   - tag of the original string (i.e. _tag) (as argument 2m+8)
+					 */
+					// Get Matched Value:
+					var matched = this._match(_val1);
+					
+					// Prepare Arguments:
+					var args = [];
+					args.push(false);	// Tag of Caller
+					args.push(false);	// Not New Object Creation
+					
+					// - (2m+2)-arguments:
+					//    - from substring to the MatchResult
+					for(var i=0; i<matched.length; i++) {
+						args.push(matched[i]);		// val_i
+						args.push(LUB(_tag, _tag1));// tag_i
+					}
+					
+					// - 2m+5th to 2m+8th arguments
+					args.push(this._indexOf(matched[0]));	// Offset
+					args.push(false);
+					args.push(this);						// String
+					args.push(_tag);						
+					
+					// Apply Function: using the prepared arguments
+					// - Expected Return is of type: TaintObject
+					// - but handle the case if it is not nevertheless
+					var result = _val2.apply(window, args);
+					
+					// Create Result:
+					return IsTaintObj(result)
+						?	// - TaintObject Result from _val2
+						MakeTaintObj(
+							this._replace(_val1, result.val),
+							LUB(_tag, _tag2, result.tag)
+						)
+						:	// - NOT TaintObject
+						MakeTaintObj(
+							this._replace(_val1, result),
+							LUB(_tag, _tag2)
+						)
+				} else {
+					return MakeTaintObj(
+						this._replace(_val1, _val2),
+						LUB(_tag, _tag2)
+					);
+				}
 			} else if(IsDefined(_val1)) {
 				return MakeTaintObj(
 					this._replace(_val1),
@@ -586,7 +728,7 @@ Object.defineProperty(String.prototype, '_slice', {
 });
 String.prototype.slice = function(_tag, _new, _val1, _tag1, _val2, _tag2) {
 	var temp = String.prototype._slice;
-	if(_new == true) {
+	if(_new === true) {
 		if(IsGlobal(this)) {
 			if(IsDefined(_val2)) {
 				return new temp(_val1, _val2);
@@ -708,7 +850,7 @@ Object.defineProperty(String.prototype, '_substr', {
 });
 String.prototype.substr = function(_tag, _val1, _tag1, _val2, _tag2) {
 	var temp = String.prototype._substr;
-	if(_new == true) {
+	if(_new === true) {
 		if(IsGlobal(this)) {
 			if(IsDefined(_val2)) {
 				return new temp(_val1, _val2);
@@ -774,7 +916,7 @@ Object.defineProperty(String.prototype, '_substring', {
 });
 String.prototype.substring = function(_tag, _new, _val1, _tag1, _val2, _tag2) {
 	var temp = String.prototype._substring;
-	if(_new == true) {
+	if(_new === true) {
 		if(IsGlobal(this)) {
 			if(IsDefined(_val2)) {
 				return new temp(_val1, _val2);
@@ -840,7 +982,7 @@ Object.defineProperty(String.prototype, '_toLocaleLowerCase', {
 });
 String.prototype.toLocaleLowerCase = function(_tag, _new) {
 	var temp = String.prototype._toLocaleLowerCase;
-	if(_new == true) {
+	if(_new === true) {
 		if(IsGlobal(this)) {
 			return new temp();
 		} else {
@@ -870,7 +1012,7 @@ Object.defineProperty(String.prototype, '_toLocaleUpperCase', {
 });
 String.prototype.toLocaleUpperCase = function(_tag, _new) {
 	var temp = String.prototype._toLocaleUpperCase;
-	if(_new == true) {
+	if(_new === true) {
 		if(IsGlobal(this)) {
 			return new temp();
 		} else {
@@ -900,7 +1042,7 @@ Object.defineProperty(String.prototype, '_toLowerCase', {
 });
 String.prototype.toLowerCase = function(_tag, _new) {
 	var temp = String.prototype._toLowerCase;
-	if(_new == true) {
+	if(_new === true) {
 		if(IsGlobal(this)) {
 			return new temp();
 		} else {
@@ -930,7 +1072,7 @@ Object.defineProperty(String.prototype, '_toUpperCase', {
 });
 String.prototype.toUpperCase = function(_tag, _new) {
 	var temp = String.prototype._toUpperCase;
-	if(_new == true) {
+	if(_new === true) {
 		if(IsGlobal(this)) {
 			return new temp();
 		} else {
@@ -954,43 +1096,13 @@ String.prototype.toUpperCase.toString = function() {
 	return String.prototype._toUpperCase.toString();
 };
 
-// toString
-Object.defineProperty(String.prototype, '_toString', {
-	value: String.prototype.toString
-});
-String.prototype.toString = function(_tag, _new) {
-	var temp = String.prototype._toString;
-	if(_new == true) {
-		if(IsGlobal(this)) {
-			return new temp();
-		} else {
-			return new this._toString();
-		}
-	} else {
-		if(IsGlobal(this)) {
-			return MakeTaintObj(
-				temp(),
-				_tag
-			);
-		} else {
-			return MakeTaintObj(
-				this._toString(),
-				_tag
-			);
-		}
-	}
-};
-String.prototype.toString.toString = function() {
-	return String.prototype._toString.toString();
-};
-
 // trim
 Object.defineProperty(String.prototype, '_trim', {
 	value: String.prototype.trim
 });
 String.prototype.trim = function(_tag, _new) {
 	var temp = String.prototype._trim;
-	if(_new == true) {
+	if(_new === true) {
 		if(IsGlobal(this)) {
 			return new temp();
 		} else {
@@ -1020,7 +1132,7 @@ Object.defineProperty(String.prototype, '_valueOf', {
 });
 String.prototype.valueOf = function(_tag, _new) {
 	var temp = String.prototype._valueOf;
-	if(_new == true) {
+	if(_new === true) {
 		if(IsGlobal(this)) {
 			return new temp();
 		} else {
@@ -1044,6 +1156,35 @@ String.prototype.valueOf.toString = function() {
 	return String.prototype._valueOf.toString();
 };
 
+// prototype toString
+Object.defineProperty(String.prototype, '_toString', {
+	value: String.prototype.toString
+});
+String.prototype.toString = function(_tag, _new) {
+	var temp = String.prototype._toString;
+	if(_new === true) {
+		if(IsGlobal(this)) {
+			return new temp();
+		} else {
+			return new this._toString();
+		}
+	} else {
+		if(IsGlobal(this)) {
+			return MakeTaintObj(
+				temp(),
+				_tag
+			);
+		} else {
+			return MakeTaintObj(
+				this._toString(),
+				_tag
+			);
+		}
+	}
+}
+String.prototype.toString.toString = function() {
+	return String.prototype._toString.toString();
+};
 
 
 
